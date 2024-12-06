@@ -1,5 +1,26 @@
 import React, { useState } from "react";
 
+// **Utility Class untuk Encapsulation**
+class ConverterUtil {
+  constructor(conversionRates) {
+    this.conversionRates = conversionRates;
+  }
+
+  convert(mode, value, from, to) {
+    if (!value || isNaN(value)) {
+      throw new Error("Invalid input value."); // **Exception Handling**
+    }
+    const rate = this.conversionRates[from]?.[to];
+    if (!rate) {
+      throw new Error("Conversion rate not found."); // **Exception Handling**
+    }
+
+    return mode === "CoinToFiat"
+      ? (value * rate).toFixed(2)
+      : (value / rate).toFixed(6);
+  }
+}
+
 const CryptoConverter = ({ mode }) => {
   const coins = [
     { code: "BTC", name: "Bitcoin", icon: "BTC" },
@@ -8,15 +29,10 @@ const CryptoConverter = ({ mode }) => {
   ];
 
   const fiats = [
-    { code: "IDR", name: "Indonesian Rupiah", icon: "ID" },
+    { code: "IDR", name: "Indonesian Rupiah", icon: "IDR" },
     { code: "USD", name: "US Dollar", icon: "US" },
     { code: "EUR", name: "Euro", icon: "EU" },
   ];
-
-  const [selectedCoin, setSelectedCoin] = useState("BTC");
-  const [selectedFiat, setSelectedFiat] = useState("IDR");
-  const [coinValue, setCoinValue] = useState("");
-  const [fiatValue, setFiatValue] = useState("");
 
   const conversionRates = {
     BTC: { IDR: 450000000, USD: 30000, EUR: 28000 },
@@ -24,26 +40,38 @@ const CryptoConverter = ({ mode }) => {
     DOGE: { IDR: 900, USD: 0.06, EUR: 0.05 },
   };
 
+  const converter = new ConverterUtil(conversionRates); // **Utility Class**
+
+  const [selectedCoin, setSelectedCoin] = useState("BTC");
+  const [selectedFiat, setSelectedFiat] = useState("IDR");
+  const [coinValue, setCoinValue] = useState("");
+  const [fiatValue, setFiatValue] = useState("");
+  const [error, setError] = useState(""); 
+
   const handleConvert = () => {
-    if (mode === "CoinToFiat" && coinValue && conversionRates[selectedCoin]) {
-      const rate = conversionRates[selectedCoin][selectedFiat];
-      const convertedValue = coinValue * rate;
-      setFiatValue(convertedValue.toFixed(2));
-    } else if (mode === "FiatToCoin" && fiatValue && conversionRates[selectedCoin]) {
-      const rate = conversionRates[selectedCoin][selectedFiat];
-      const convertedValue = fiatValue / rate;
-      setCoinValue(convertedValue.toFixed(6));
+    try {
+      setError(""); 
+      if (mode === "CoinToFiat") { //** pOLYMORPHISM */
+        const result = converter.convert(mode, coinValue, selectedCoin, selectedFiat);
+        setFiatValue(result);
+      } else {
+        const result = converter.convert(mode, fiatValue, selectedCoin, selectedFiat);
+        setCoinValue(result);
+      }
+    } catch (err) {
+      setError(err.message); 
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-60">
-      {/* Heading */}
       <h1 className="text-4xl font-bold">Crypto Coin Conversion</h1>
       <p className="text-gray-600 mt-2">Free From Sign-Up, Limits, and Complications</p>
 
-      {/* Main Form */}
       <div className="bg-white shadow-lg rounded-lg p-6 mt-6 w-96">
+        {/* Error Message */}
+        {error && <p className="text-red-500 mb-4">{error}</p>} {/* **Ditambahkan: Pesan Error** */}
+
         {/* Input */}
         <div className="mb-4">
           <label className="block text-gray-700 font-medium mb-2">
@@ -119,7 +147,6 @@ const CryptoConverter = ({ mode }) => {
         </button>
       </div>
 
-      {/* Footer */}
       <p className="text-gray-500 mt-4 text-sm">
         The Most Efficient and Visually Appealing Website for Crypto Conversion
       </p>
